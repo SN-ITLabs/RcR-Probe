@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<record_update table="sys_ws_operation">
+    <sys_ws_operation action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <consumes>application/json,application/xml,text/xml</consumes>
+        <consumes_customized>false</consumes_customized>
+        <default_operation_uri/>
+        <enforce_acl/>
+        <http_method>POST</http_method>
+        <name>process</name>
+        <operation_script><![CDATA[(function process(/*RESTAPIRequest*/ request, /*RESTAPIResponse*/ response) {
+    var requestBody = request.body;
+	var output = {}, resultMap, fileObj;
+	try{
+		var sourceTagger = new x_snc_sn_rcr_probe.SourceTagger();
+
+		var requestString = requestBody.dataString;
+		var fileObjArry = global.JSON.parse(requestString);
+		for(var fileObjIndx in fileObjArry) {
+			fileObj = fileObjArry[fileObjIndx];
+			resultMap = sourceTagger.getChangedLines(fileObj["fileSysId"],fileObj["fileType"],fileObj["versionId"]);
+			output[fileObj["fileSysId"]] = resultMap;
+		}
+	} catch (e){
+		gs.error(e);
+	}
+
+	response.setBody(output);
+	return response;
+
+})(request, response);
+
+/* Test case 
+
+var request = new sn_ws.RESTMessageV2();
+request.setHttpMethod('post');
+request.setBasicAuth('chaitanya', 'test123');
+request.setEndpoint("https://itappsrcr.service-now.com/api/x_snc_sn_rcr_probe/getchangedlines/process");
+request. setRequestBody(JSON.stringify([{'fileSysId':'543c3febdb654f007236d9f0ce9619db', 'fileType':'sys_script_include', 'versionId': '7d1df36fdb654f007236d9f0ce961952'}]));
+var response = request.execute();
+var restMessages = JSON.parse(response.getBody());
+gs.info(JSON.stringify(restMessages));
+
+*/
+// => input = [{'fileSysId':'543c3febdb654f007236d9f0ce9619db', 'fileType':'sys_script_include', 'versionId': '7d1df36fdb654f007236d9f0ce961952'}]
+
+// => output = {"fileSysId": {"4":"13","5":"14","9":-1,"10":-1,"11":"18","12":"19","13":"20"}}
+]]></operation_script>
+        <operation_uri>/api/x_snc_sn_rcr_probe/getchangedlines/process</operation_uri>
+        <produces>application/json,application/xml,text/xml</produces>
+        <produces_customized>false</produces_customized>
+        <relative_path>/process</relative_path>
+        <request_example/>
+        <requires_acl_authorization>false</requires_acl_authorization>
+        <requires_authentication>true</requires_authentication>
+        <short_description/>
+        <sys_class_name>sys_ws_operation</sys_class_name>
+        <sys_created_by>chaitanya</sys_created_by>
+        <sys_created_on>2017-10-27 11:51:56</sys_created_on>
+        <sys_customer_update>true</sys_customer_update>
+        <sys_id>b821fab5dbca0f40a86a5404ce961976</sys_id>
+        <sys_mod_count>2</sys_mod_count>
+        <sys_name>process</sys_name>
+        <sys_package display_value="sn_rcr_probe" source="x_snc_sn_rcr_probe">14191d3f4ff48700afef74828110c799</sys_package>
+        <sys_policy/>
+        <sys_replace_on_upgrade>false</sys_replace_on_upgrade>
+        <sys_scope display_value="sn_rcr_probe">14191d3f4ff48700afef74828110c799</sys_scope>
+        <sys_update_name>sys_ws_operation_b821fab5dbca0f40a86a5404ce961976</sys_update_name>
+        <sys_updated_by>pradeep.g</sys_updated_by>
+        <sys_updated_on>2017-10-31 18:09:12</sys_updated_on>
+        <web_service_definition display_value="getChangedLines">86e07ab5dbca0f40a86a5404ce961959</web_service_definition>
+        <web_service_version/>
+    </sys_ws_operation>
+</record_update>

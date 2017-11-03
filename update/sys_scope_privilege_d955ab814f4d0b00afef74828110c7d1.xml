@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<record_update table="sys_scope_privilege">
+    <sys_scope_privilege action="INSERT_OR_UPDATE">
+        <operation>execute</operation>
+        <source_scope display_value="sn_rcr_probe">14191d3f4ff48700afef74828110c799</source_scope>
+        <status>allowed</status>
+        <sys_class_name>sys_scope_privilege</sys_class_name>
+        <sys_created_by>ranjeeta</sys_created_by>
+        <sys_created_on>2017-09-05 14:32:31</sys_created_on>
+        <sys_customer_update>false</sys_customer_update>
+        <sys_id>d955ab814f4d0b00afef74828110c7d1</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>RESTAPIRequest</sys_name>
+        <sys_package display_value="sn_rcr_probe" source="x_snc_sn_rcr_probe">14191d3f4ff48700afef74828110c799</sys_package>
+        <sys_policy/>
+        <sys_replace_on_upgrade>false</sys_replace_on_upgrade>
+        <sys_scope display_value="sn_rcr_probe">14191d3f4ff48700afef74828110c799</sys_scope>
+        <sys_update_name>sys_scope_privilege_d955ab814f4d0b00afef74828110c7d1</sys_update_name>
+        <sys_updated_by>ranjeeta</sys_updated_by>
+        <sys_updated_on>2017-09-05 14:32:31</sys_updated_on>
+        <target_name>RESTAPIRequest</target_name>
+        <target_scope display_value="Global">global</target_scope>
+        <target_type>scriptable</target_type>
+    </sys_scope_privilege>
+</record_update>

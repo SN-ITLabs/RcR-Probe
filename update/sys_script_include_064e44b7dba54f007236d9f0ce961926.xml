@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>public</access>
+        <active>true</active>
+        <api_name>x_snc_sn_rcr_probe.ScriptComparator</api_name>
+        <client_callable>false</client_callable>
+        <description/>
+        <name>ScriptComparator</name>
+        <script><![CDATA[var ScriptComparator = Class.create();
+ScriptComparator.prototype = {
+    initialize: function() {
+    },
+
+	getScriptFromPayload: function (payload, fileType) {
+		var result;
+		if (!payload || !fileType) return;
+
+        try {
+            var jsObj = gs.xmlToJSON(payload);
+            if (jsObj['record_update']) {
+                var ruJsObj = jsObj['record_update'];
+                if (ruJsObj[fileType]) {
+                    result = ruJsObj[fileType]['script'];
+                }
+            }
+        } catch (e) {
+            gs.info('Error parsing script diff to JSON ' + e);
+        }        
+        return result;
+    },
+	
+	getSourceTags: function(oldPayload, newPayload, fileType) {
+		var diffArray = this.getPayloadDiff(oldPayload, newPayload, fileType);
+		var diffLines = this.getDiffLines(diffArray);
+		return diffLines;
+	},
+	
+	getPayloadDiff: function(old_payload, new_payload, fileType) {
+		var old_script = this.getScriptFromPayload(old_payload, fileType);
+		var new_script = this.getScriptFromPayload(new_payload, fileType);
+		return this.getScriptsDiff(old_script, new_script);
+	},
+	
+	getScriptsDiff: function (old_script, new_script) {
+        var result;
+		if (!new_script || !old_script) return;
+
+        try {
+			var df;
+			if ( gs.getProperty('glide.servlet.uri') == "https://itappsrcr.service-now.com/")
+				df = new global.Differ2();
+			else 
+				df = new global.Differ();
+			
+            var _diff = df.diff(old_script, new_script, 'SCRIPT', true);
+            result = this.getDiffArrayFromXML(_diff);
+        } catch (e) {
+            gs.info('Error calculating diff' + e);            
+        }
+		return result;
+    },
+
+    getDiffArrayFromXML: function (dXML) {
+        try {
+            var jsDiffObj = gs.xmlToJSON(dXML);
+            if (jsDiffObj['tbody'] && jsDiffObj['tbody']['tr']) {
+                return jsDiffObj['tbody']['tr'];
+            }
+        } catch (e) {
+            gs.info('Error parsing script diff to JSON ' + e);
+            return [];
+        }
+        return [];
+    },
+	
+	getDiffLines: function(diffArray) {
+		var result = {}, diffObj, diffObjTD;
+		var linesUnchanged = [], linesReplaced = [], linesAdded = [];
+		
+		if (!Array.isArray(diffArray))
+            return;
+
+        for(var diffObjIndx in diffArray){
+			diffObj = diffArray[diffObjIndx];
+            diffObjTD = diffObj['td']; //TODO
+            if (!Array.isArray(diffObjTD) && diffObjTD.length >= 4)
+                return;
+
+            var conflictType = diffObjTD[3]['class'];
+			//Handle delete, insert, replace and equal
+            if (conflictType) {
+				var _oldLineNo = parseInt(diffObjTD[0]['content']);
+				var _newLineNo = parseInt(diffObjTD[2]['content']);
+				if (_newLineNo) {								
+					if (conflictType == 'equal') {
+						linesUnchanged.push(_newLineNo);
+					} else if (conflictType == 'insert') {
+						linesAdded.push(_newLineNo);
+					} else if (conflictType == 'replace') {
+						linesReplaced.push(_newLineNo);
+					}
+				}
+			}
+		}
+		result["equal"] = linesUnchanged;
+		result["insert"] = linesAdded;
+		result["replace"] = linesReplaced;
+		
+		return result;
+	},
+	
+	buildNewLineMapping: function (diffArray, currentLineMap, source) {
+
+        if (!Array.isArray(diffArray) || !source)
+            return;
+
+        var newSourceMap = {};
+        if (!currentLineMap) currentLineMap = {};
+
+        diffArray.forEach(function (lineConflict) {
+
+            lineConflict = lineConflict['td']; //TODO
+            if (!Array.isArray(lineConflict) && lineConflict.length >= 4)
+                return;
+
+            var _conflictType = lineConflict[3]['class'];
+            if (!_conflictType) return;
+
+            /*************************
+                ** Handle delete, insert, replace and equal
+                **************************/
+            if (_conflictType == 'empty')
+                return;
+
+            var _oldLineNo = parseInt(lineConflict[0]['content']);
+            var _newLineNo = parseInt(lineConflict[2]['content']);
+
+            if (!_newLineNo) {
+                gs.info('Error: Empty new line number, debug this');
+                return;
+            }
+            //EQUAL - if both the lines are equal => update line mapping
+            if (_conflictType == 'equal') {
+                newSourceMap[_newLineNo] = currentLineMap[_oldLineNo] || source;
+
+                //INSERT - new insertion of a line => update to current src
+            } else if (_conflictType == 'insert') {
+                newSourceMap[_newLineNo] = source;
+
+                //REPLACE - line replcaed => update to current source
+            } else if (_conflictType == 'replace') {
+                newSourceMap[_newLineNo] = source;
+            }
+        }, this);
+
+        return newSourceMap;
+
+    },
+	
+    type: 'ScriptComparator'
+};]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>chaitanya</sys_created_by>
+        <sys_created_on>2017-10-08 08:33:27</sys_created_on>
+        <sys_customer_update>true</sys_customer_update>
+        <sys_id>064e44b7dba54f007236d9f0ce961926</sys_id>
+        <sys_mod_count>23</sys_mod_count>
+        <sys_name>ScriptComparator</sys_name>
+        <sys_package display_value="sn_rcr_probe" source="x_snc_sn_rcr_probe">14191d3f4ff48700afef74828110c799</sys_package>
+        <sys_policy>read</sys_policy>
+        <sys_replace_on_upgrade>false</sys_replace_on_upgrade>
+        <sys_scope display_value="sn_rcr_probe">14191d3f4ff48700afef74828110c799</sys_scope>
+        <sys_update_name>sys_script_include_064e44b7dba54f007236d9f0ce961926</sys_update_name>
+        <sys_updated_by>pradeep.g</sys_updated_by>
+        <sys_updated_on>2017-10-31 18:00:06</sys_updated_on>
+    </sys_script_include>
+</record_update>

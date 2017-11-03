@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>public</access>
+        <active>true</active>
+        <api_name>x_snc_sn_rcr_probe.SourceTagger</api_name>
+        <client_callable>false</client_callable>
+        <description/>
+        <name>SourceTagger</name>
+        <script><![CDATA[var SourceTagger = Class.create();
+SourceTagger.prototype = {
+
+	compareUtil : new x_snc_sn_rcr_probe.ScriptComparator(),
+	
+	arrayUtil : new global.ArrayUtil(),
+	
+	duration: 15,
+	
+	unknownDeveloper: "UNKNOWN",
+	
+	initialize: function(duration) {
+		this.latestVersionId = '';
+		if(duration) {
+			this.duration = duration;			
+		}
+	},
+	
+	getTags: function(fileSysId, fileType) {
+		var latestVersion, currentVersion, diff, parentVersion, beforeDurationVersion;
+		var versionMap = [];
+		var prevDev = "", exists, equalArryIndx, insertArryIndx, replaceArryIndx;
+		var tags = {};
+		var alreadyReserved = [];
+		
+		var vGRBefore = new GlideRecord('sys_update_version');
+		var encodedQuery = "sys_created_on<javascript:gs.daysAgoStart(" + this.duration + ")";
+		vGRBefore.addEncodedQuery(encodedQuery);
+		vGRBefore.addQuery('name',  fileType + '_' + fileSysId);
+		vGRBefore.setLimit(1);
+		vGRBefore.orderByDesc('sys_created_on');
+		
+		vGRBefore.query();
+		if(vGRBefore.next()){					
+			beforeDurationVersion = {'developer': vGRBefore.getValue("sys_created_by"), 
+									   'version': vGRBefore.getValue("sys_id"), 
+									   'payload': vGRBefore.getValue('payload')};
+		}
+
+		var vGR = new GlideRecord('sys_update_version');
+		encodedQuery = "sys_created_on>=javascript:gs.daysAgoStart(" + this.duration + ")";
+		vGR.addEncodedQuery(encodedQuery);
+		vGR.addQuery('name',  fileType + '_' + fileSysId);
+		vGR.orderByDesc('sys_created_on');
+		vGR.query();
+
+		while(vGR.next()){
+			versionMap.push({'developer': vGR.getValue("sys_created_by"), 'version': vGR.getValue("sys_id"), 'payload': vGR.getValue('payload')});
+			if (this.getLatestVersionId() == '') this.setLatestVersionId(vGR.getValue("sys_id"));
+		}
+
+
+		for(var versionIndx in versionMap) {
+			if(!latestVersion) {
+				latestVersion = versionMap[versionIndx];
+				parentVersion = latestVersion;
+			}else{
+				currentVersion = versionMap[versionIndx];
+				diff = this.compareUtil.getSourceTags(currentVersion.payload, latestVersion.payload, fileType);
+				if(diff){
+					if(!tags[parentVersion["developer"]]) {
+						tags[parentVersion["developer"]] = [];
+					}
+					for(insertArryIndx in diff["insert"]) {
+						exists = this.arrayUtil.contains(alreadyReserved, diff["insert"][insertArryIndx]);
+						if(!exists) {
+							tags[parentVersion["developer"]].push(diff["insert"][insertArryIndx]);
+							alreadyReserved.push(diff["insert"][insertArryIndx]);
+						}
+					}
+					for(replaceArryIndx in diff["replace"]) {
+						exists = this.arrayUtil.contains(alreadyReserved, diff["replace"][replaceArryIndx]);
+						if(!exists) {
+							tags[parentVersion["developer"]].push(diff["replace"][replaceArryIndx]);
+							alreadyReserved.push(diff["replace"][replaceArryIndx]);
+						}
+					}
+					parentVersion = currentVersion;					
+				}
+			}
+		}
+		
+		if(beforeDurationVersion && latestVersion) {
+			var beforeDurationVersionPayload = beforeDurationVersion.payload?beforeDurationVersion.payload: "";
+			var latestVersionPayload = latestVersion.payload?latestVersion.payload: "";
+			diff = this.compareUtil.getSourceTags(beforeDurationVersionPayload, latestVersionPayload, fileType);			
+			if(diff) {
+				if(!tags[this.unknownDeveloper]) {
+					tags[this.unknownDeveloper] = [];
+				}
+				for(equalArryIndx in diff["equal"]) {
+					exists = this.arrayUtil.contains(alreadyReserved, diff["equal"][equalArryIndx]);
+					if(!exists) {
+						tags[this.unknownDeveloper].push(diff["equal"][equalArryIndx]);				
+					}
+				}	
+				if(!tags[parentVersion["developer"]]) {
+						tags[parentVersion["developer"]] = [];
+				}
+				for(insertArryIndx in diff["insert"]) {
+					exists = this.arrayUtil.contains(alreadyReserved, diff["insert"][insertArryIndx]);
+					if(!exists) {
+						tags[parentVersion["developer"]].push(diff["insert"][insertArryIndx]);
+						alreadyReserved.push(diff["insert"][insertArryIndx]);
+					}
+				}
+				for(replaceArryIndx in diff["replace"]) {
+					exists = this.arrayUtil.contains(alreadyReserved, diff["replace"][replaceArryIndx]);
+					if(!exists) {
+						tags[parentVersion["developer"]].push(diff["replace"][replaceArryIndx]);
+						alreadyReserved.push(diff["replace"][replaceArryIndx]);
+					}
+				}				
+			}
+		}else {			
+			if(parentVersion){
+				if(!tags[parentVersion["developer"]]) {
+					tags[parentVersion["developer"]] = [];
+				}
+				if(diff) {
+					for(equalArryIndx in diff["equal"]) {
+						exists = this.arrayUtil.contains(alreadyReserved, diff["equal"][equalArryIndx]);
+						if(!exists) {
+							tags[parentVersion["developer"]].push(diff["equal"][equalArryIndx]);				
+						}
+					}						
+				}
+			}
+		}
+		
+		return tags;
+	},
+
+	getChangedLines: function(fileSysId, fileType, previousVersion) {
+		var resultMap = {}, diff, objIndx, insertArryIndx, replaceArryIndx, prevLine, nextLine;
+		var previousVersionGR = new GlideRecord('sys_update_version');
+		previousVersionGR.get(previousVersion);
+		
+		var currentVersionGR = new GlideRecord('sys_update_version');
+		currentVersionGR.addQuery('name', fileType + '_' + fileSysId);
+		currentVersionGR.setLimit(1);
+		currentVersionGR.orderByDesc('sys_created_on');		
+		currentVersionGR.query();
+		
+		if(currentVersionGR.next()){
+			if(currentVersionGR.sys_id != previousVersionGR) {
+				diff = this.compareUtil.getPayloadDiff(previousVersionGR.payload, currentVersionGR.payload, fileType);
+				if(diff){
+
+					for(objIndx in diff) {
+						if(diff[objIndx] && diff[objIndx]['td'] && 
+						   (diff[objIndx]['td'][3]['class'] == 'equal' || diff[objIndx]['td'][3]['class'] == 'empty')){
+							if(diff[objIndx]['td'] && diff[objIndx]['td'][0] && diff[objIndx]['td'][0]['content']){
+								prevLine = diff[objIndx]['td'][0]['content'].split(':')[0];									
+							}else{
+								prevLine = -1;
+							}
+
+							if(diff[objIndx]['td'] && diff[objIndx]['td'][2] && diff[objIndx]['td'][2]['content']){
+								nextLine = diff[objIndx]['td'][2]['content'].split(':')[0];
+							}else{
+								nextLine = -1;
+							}													
+							if(prevLine != -1 && prevLine != nextLine) {
+								resultMap[prevLine] = nextLine;
+							}
+						}
+					}
+
+				}
+			}
+		}
+		return resultMap;
+	},
+	
+	getLatestVersionId : function(){
+		return this.latestVersionId;
+	},
+	
+	setLatestVersionId : function(sysVerId){
+		this.latestVersionId = sysVerId;
+	}, 
+	
+    type: 'SourceTagger'
+};]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>chaitanya</sys_created_by>
+        <sys_created_on>2017-10-08 07:00:14</sys_created_on>
+        <sys_customer_update>true</sys_customer_update>
+        <sys_id>84f97f6bdb654f007236d9f0ce9619dc</sys_id>
+        <sys_mod_count>43</sys_mod_count>
+        <sys_name>SourceTagger</sys_name>
+        <sys_package display_value="sn_rcr_probe" source="x_snc_sn_rcr_probe">14191d3f4ff48700afef74828110c799</sys_package>
+        <sys_policy/>
+        <sys_replace_on_upgrade>false</sys_replace_on_upgrade>
+        <sys_scope display_value="sn_rcr_probe">14191d3f4ff48700afef74828110c799</sys_scope>
+        <sys_update_name>sys_script_include_84f97f6bdb654f007236d9f0ce9619dc</sys_update_name>
+        <sys_updated_by>pradeep.g</sys_updated_by>
+        <sys_updated_on>2017-10-30 15:18:04</sys_updated_on>
+    </sys_script_include>
+</record_update>
