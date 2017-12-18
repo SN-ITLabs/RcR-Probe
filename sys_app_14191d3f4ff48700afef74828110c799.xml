@@ -10,6 +10,7 @@
         <menu/>
         <name>sn_rcr_probe</name>
         <private>false</private>
+        <restrict_runtime_access>false</restrict_runtime_access>
         <restrict_table_access>false</restrict_table_access>
         <runtime_access_tracking>permissive</runtime_access_tracking>
         <scope>x_snc_sn_rcr_probe</scope>

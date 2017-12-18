@@ -25,7 +25,8 @@ SourceTagger.prototype = {
 		}
 	},
 	
-	getTags: function(fileSysId, fileType) {
+	getTags: function(fileSysId, fileType, duration) {
+		if(!duration) duration = this.duration;
 		var latestVersion, currentVersion, diff, parentVersion, beforeDurationVersion;
 		var versionMap = [];
 		var prevDev = "", exists, equalArryIndx, insertArryIndx, replaceArryIndx;
@@ -33,7 +34,7 @@ SourceTagger.prototype = {
 		var alreadyReserved = [];
 		
 		var vGRBefore = new GlideRecord('sys_update_version');
-		var encodedQuery = "sys_created_on<javascript:gs.daysAgoStart(" + this.duration + ")";
+		var encodedQuery = "sys_created_on<javascript:gs.daysAgoStart(" + duration + ")";
 		vGRBefore.addEncodedQuery(encodedQuery);
 		vGRBefore.addQuery('name',  fileType + '_' + fileSysId);
 		vGRBefore.setLimit(1);
@@ -41,13 +42,15 @@ SourceTagger.prototype = {
 		
 		vGRBefore.query();
 		if(vGRBefore.next()){					
-			beforeDurationVersion = {'developer': vGRBefore.getValue("sys_created_by"), 
-									   'version': vGRBefore.getValue("sys_id"), 
-									   'payload': vGRBefore.getValue('payload')};
+			beforeDurationVersion = {
+				'developer': vGRBefore.getValue("sys_created_by"), 
+				'version': vGRBefore.getValue("sys_id"), 
+				'payload': vGRBefore.getValue('payload')
+			};
 		}
 
 		var vGR = new GlideRecord('sys_update_version');
-		encodedQuery = "sys_created_on>=javascript:gs.daysAgoStart(" + this.duration + ")";
+		encodedQuery = "sys_created_on>=javascript:gs.daysAgoStart(" + duration + ")";
 		vGR.addEncodedQuery(encodedQuery);
 		vGR.addQuery('name',  fileType + '_' + fileSysId);
 		vGR.orderByDesc('sys_created_on');
@@ -55,7 +58,6 @@ SourceTagger.prototype = {
 
 		while(vGR.next()){
 			versionMap.push({'developer': vGR.getValue("sys_created_by"), 'version': vGR.getValue("sys_id"), 'payload': vGR.getValue('payload')});
-			if (this.getLatestVersionId() == '') this.setLatestVersionId(vGR.getValue("sys_id"));
 		}
 
 
@@ -182,13 +184,16 @@ SourceTagger.prototype = {
 		return resultMap;
 	},
 	
-	getLatestVersionId : function(){
-		return this.latestVersionId;
+	getLatestVersionId : function(fileSysId, fileType) {
+		var _vid = '';
+		var vGR = new GlideRecord('sys_update_version');
+		vGR.addQuery('name', fileType + '_' + fileSysId);
+		vGR.orderByDesc('sys_created_on');
+		vGR.setLimit(1);
+		vGR.query();
+		if(vGR.next()) _vid = vGR.getValue('sys_id');
+		return _vid;
 	},
-	
-	setLatestVersionId : function(sysVerId){
-		this.latestVersionId = sysVerId;
-	}, 
 	
     type: 'SourceTagger'
 };]]></script>
@@ -197,14 +202,14 @@ SourceTagger.prototype = {
         <sys_created_on>2017-10-08 07:00:14</sys_created_on>
         <sys_customer_update>true</sys_customer_update>
         <sys_id>84f97f6bdb654f007236d9f0ce9619dc</sys_id>
-        <sys_mod_count>43</sys_mod_count>
+        <sys_mod_count>47</sys_mod_count>
         <sys_name>SourceTagger</sys_name>
         <sys_package display_value="sn_rcr_probe" source="x_snc_sn_rcr_probe">14191d3f4ff48700afef74828110c799</sys_package>
         <sys_policy/>
         <sys_replace_on_upgrade>false</sys_replace_on_upgrade>
         <sys_scope display_value="sn_rcr_probe">14191d3f4ff48700afef74828110c799</sys_scope>
         <sys_update_name>sys_script_include_84f97f6bdb654f007236d9f0ce9619dc</sys_update_name>
-        <sys_updated_by>pradeep.g</sys_updated_by>
-        <sys_updated_on>2017-10-30 15:18:04</sys_updated_on>
+        <sys_updated_by>pradeep.gouribhatla</sys_updated_by>
+        <sys_updated_on>2017-12-17 17:58:34</sys_updated_on>
     </sys_script_include>
 </record_update>

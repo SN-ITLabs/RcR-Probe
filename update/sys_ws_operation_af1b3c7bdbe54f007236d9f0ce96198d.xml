@@ -12,9 +12,8 @@
     var requestBody = request.body;
 	var output = [], tags, fileObj;
 	var duration = parseInt(getParamAsString('duration'));
-	if(!duration) {
-		duration = 15;  //default value 
-	}
+	if(!duration) duration = 15;
+
 	var sourceTagger = new x_snc_sn_rcr_probe.SourceTagger(duration);
 	
 	//input = [{'fileSysId':'543c3febdb654f007236d9f0ce9619db', 'fileType':'sys_script_include'}];
@@ -25,12 +24,13 @@
 	for(var fileObjIndx in fileObjArry) {
 		fileObj = fileObjArry[fileObjIndx];
 		result = result + "::" + fileObj["fileSysId"] + "_" + fileObj["fileType"];
-		tags = sourceTagger.getTags(fileObj["fileSysId"],fileObj["fileType"]);
+		tags = sourceTagger.getTags(fileObj["fileSysId"],fileObj["fileType"],fileObj["duration"]);
+		var _vid = sourceTagger.getLatestVersionId(fileObj["fileSysId"],fileObj["fileType"]);
 		//output[fileObj["fileSysId"]] = tags;
 		
 		var resFileObj = {
 			fileSysId : fileObj["fileSysId"],
-			versionSysId : sourceTagger.getLatestVersionId(),
+			versionSysId : _vid,
 			fileType  : fileObj["fileType"],
 			tags : tags
 		};
@@ -89,15 +89,15 @@ gs.info(JSON.stringify(restMessages));
         <sys_created_on>2017-10-08 11:55:29</sys_created_on>
         <sys_customer_update>true</sys_customer_update>
         <sys_id>af1b3c7bdbe54f007236d9f0ce96198d</sys_id>
-        <sys_mod_count>26</sys_mod_count>
+        <sys_mod_count>30</sys_mod_count>
         <sys_name>process</sys_name>
         <sys_package display_value="sn_rcr_probe" source="x_snc_sn_rcr_probe">14191d3f4ff48700afef74828110c799</sys_package>
         <sys_policy/>
         <sys_replace_on_upgrade>false</sys_replace_on_upgrade>
         <sys_scope display_value="sn_rcr_probe">14191d3f4ff48700afef74828110c799</sys_scope>
         <sys_update_name>sys_ws_operation_af1b3c7bdbe54f007236d9f0ce96198d</sys_update_name>
-        <sys_updated_by>pradeep.g</sys_updated_by>
-        <sys_updated_on>2017-10-30 11:35:45</sys_updated_on>
+        <sys_updated_by>pradeep.gouribhatla</sys_updated_by>
+        <sys_updated_on>2017-12-17 17:59:03</sys_updated_on>
         <web_service_definition display_value="getTags">d3ca3c7bdbe54f007236d9f0ce961988</web_service_definition>
         <web_service_version/>
     </sys_ws_operation>
